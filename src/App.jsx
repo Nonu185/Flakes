@@ -49,7 +49,7 @@ function App() {
   // Helper to fetch movies from backend API (deduplicates by imdbID)
   const fetchMovies = async (query, type = '') => {
     try {
-      const BASE_URL = "https://movie-website-1-1.onrender.com";
+      const BASE_URL = "https://flakes.onrender.com";
 let url = `${BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`;
       if (type) url += `&type=${type}`;
       const response = await fetch(url);
