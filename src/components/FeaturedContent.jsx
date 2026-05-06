@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { Play, Info, Star } from 'lucide-react';
 
-const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
+const FeaturedContent = ({ onMovieSelect, activeMenu, refreshKey }) => {
   const [featured, setFeatured] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +17,8 @@ const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
           endpoint = '/movies/search?q=Top'; // Or a specific movies category
         } else if (activeMenu === 'Series') {
           endpoint = '/movies/search?q=The&type=series';
+        } else if (activeMenu === 'Indian') {
+          endpoint = '/movies/search?q=Bollywood';
         }
         
         const response = await api.get(endpoint);
@@ -39,7 +41,7 @@ const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
       }
     };
     loadFeatured();
-  }, [activeMenu]);
+  }, [activeMenu, refreshKey]);
 
   if (loading || !featured) {
     return (

@@ -50,7 +50,7 @@ async function searchMovies(req, res) {
         api_key: process.env.TMDB_API_KEY,
         query: query,
         language: 'en-US',
-        page: 1
+        page: req.query.page || 1
       }
     });
 

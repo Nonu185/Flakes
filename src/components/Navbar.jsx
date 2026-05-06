@@ -1,22 +1,61 @@
-import React, { useState } from 'react';
-import { Home, Film, Tv, TrendingUp, Search, User, LogOut, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import api from '../api';
+import { Home, Film, Tv, TrendingUp, Search, User, LogOut, Bell, Loader2, Globe } from 'lucide-react';
 
-const Navbar = ({ activeMenu, setActiveMenu, onSearch, user, onOpenAuth, onLogout }) => {
+const Navbar = ({ activeMenu, setActiveMenu, onSearch, user, onOpenAuth, onLogout, onMovieSelect }) => {
   const [searchInput, setSearchInput] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const menuItems = [
-    { name: 'Home', icon: <Home size={20} /> },
-    { name: 'Movies', icon: <Film size={20} /> },
-    { name: 'Series', icon: <Tv size={20} /> },
-    { name: 'Trends', icon: <TrendingUp size={20} /> },
-  ];
+  useEffect(() => {
+    const delayDebounce = setTimeout(async () => {
+      if (searchInput.trim().length > 0) {
+        setIsSearching(true);
+        try {
+          const response = await api.get('/movies/search', { params: { q: searchInput } });
+          if (response.data.Response === "True") {
+            setSuggestions(response.data.Search.slice(0, 6));
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+          }
+        } catch (err) {
+          console.warn("Suggestion fetch error:", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchInput]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchInput.trim()) {
       onSearch(searchInput);
+      setShowSuggestions(false);
     }
   };
+
+  const handleSelectSuggestion = (movie) => {
+    onMovieSelect(movie);
+    setSearchInput('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const menuItems = [
+    { name: 'Home', icon: <Home size={20} /> },
+    { name: 'Movies', icon: <Film size={20} /> },
+    { name: 'Series', icon: <Tv size={20} /> },
+    { name: 'Indian', icon: <Globe size={20} /> },
+    { name: 'Trends', icon: <TrendingUp size={20} /> },
+  ];
 
   return (
     <nav className="navbar">
@@ -34,7 +73,23 @@ const Navbar = ({ activeMenu, setActiveMenu, onSearch, user, onOpenAuth, onLogou
             style={{ paddingLeft: '40px', marginBottom: 0 }}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           />
+          {isSearching && <Loader2 className="animate-spin" size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)' }} />}
+          
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="search-suggestions glass animate-fade-in">
+              {suggestions.map((movie) => (
+                <div key={movie.imdbID} className="suggestion-item" onClick={() => handleSelectSuggestion(movie)}>
+                  <img src={movie.Poster} alt={movie.Title} className="suggestion-img" />
+                  <div className="suggestion-info">
+                    <span className="suggestion-title">{movie.Title}</span>
+                    <span className="suggestion-year">{movie.Year}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </div>
       
