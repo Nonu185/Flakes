@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../api';
 import { X, Star, Clock, Calendar, Film, Globe, Award, Play } from 'lucide-react';
 
 const MovieDetailModal = ({ movie, onClose }) => {
@@ -14,8 +15,8 @@ const MovieDetailModal = ({ movie, onClose }) => {
     const fetchDetails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/movies/${movie.imdbID}`);
-        const data = await response.json();
+        const response = await api.get(`/movies/${movie.imdbID}`);
+        const data = response.data;
         if (data && data.Response !== 'False') {
           setDetails(data);
         } else {

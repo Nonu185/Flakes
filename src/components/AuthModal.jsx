@@ -25,7 +25,7 @@ const AuthModal = ({ isOpen, onClose, initialView, onLoginSuccess }) => {
     setError('');
     setLoading(true);
 
-    const url = isLoginView ? '/api/auth/login' : '/api/auth/register';
+    const url = isLoginView ? '/auth/login' : '/auth/register';
 
     const payload = isLoginView 
       ? { username: formData.identifier, email: formData.identifier, password: formData.password }

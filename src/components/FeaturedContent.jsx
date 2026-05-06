@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../api';
 import { Play, Info, Star } from 'lucide-react';
 
 const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
@@ -9,18 +10,17 @@ const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
     const loadFeatured = async () => {
       setLoading(true);
       try {
-        let endpoint = '/api/movies/trending';
+        let endpoint = '/movies/trending';
         
         // Change endpoint based on active menu
         if (activeMenu === 'Movies') {
-          endpoint = '/api/movies/search?q=Top'; // Or a specific movies category
+          endpoint = '/movies/search?q=Top'; // Or a specific movies category
         } else if (activeMenu === 'Series') {
-          endpoint = '/api/movies/search?q=The&type=series';
+          endpoint = '/movies/search?q=The&type=series';
         }
         
-        const response = await fetch(endpoint);
-        if (!response.ok) throw new Error("API Error");
-        const data = await response.json();
+        const response = await api.get(endpoint);
+        const data = response.data;
         
         if (data && data.Search && data.Search.length > 0) {
           // Pick a random movie from the results
