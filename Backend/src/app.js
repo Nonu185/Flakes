@@ -1,20 +1,16 @@
 const express = require('express');
 const app = express();
 const cors = require("cors");
+const compression = require('compression');
 const cookieparser = require('cookie-parser');
 const authROUTER = require("./routes/auth.route");
 const movieROUTER = require("./routes/movie.route");
 
-const corsOptions = {
-  origin: "https://project-1-puce-three.vercel.app",
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
-
-app.options('/{*path}', cors(corsOptions));
+app.use(compression());
+app.use(cors({
+  origin: ["https://project-1-puce-three.vercel.app", "http://localhost:5173", "http://127.0.0.1:5173"],
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(cookieparser());

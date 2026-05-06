@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Play } from 'lucide-react';
+import { Star, Play, Plus } from 'lucide-react';
 
 const MovieCard = ({ movie, onClick }) => {
   const handleClick = (e) => {
@@ -8,34 +8,33 @@ const MovieCard = ({ movie, onClick }) => {
     if (onClick) onClick(movie);
   };
 
-  // If rating is not directly on movie via search API, we skip spamming the API 
-  // to avoid hitting free-tier rate limits and crashing the app.
   const rating = movie.imdbRating && movie.imdbRating !== "N/A" ? movie.imdbRating : null;
 
   return (
-    <div className="movie-list-item glass" onClick={handleClick}>
+    <div className="movie-list-item" onClick={handleClick}>
       <img 
         className="movie-list-item-img" 
-        src={movie.Poster && movie.Poster !== "N/A" ? movie.Poster : '/img/1.jpeg'} 
+        src={movie.Poster && movie.Poster !== "N/A" ? movie.Poster : 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=400'} 
         alt={movie.Title} 
         loading="lazy"
         draggable={false}
       />
-      {rating && (
-        <div className="movie-rating-badge">
-          <Star size={12} fill="#fbbf24" stroke="#fbbf24" />
-          <span>{rating}</span>
-        </div>
-      )}
+      
       <div className="movie-list-item-info">
-        <span className="movie-list-item-title">{movie.Title}</span>
-        <p className="movie-list-item-desc">
-          {movie.Year} · {movie.Type === 'series' ? 'Series' : 'Movie'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="glass" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Play size={14} fill="white" />
+                </div>
+                <div className="glass" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Plus size={14} />
+                </div>
+            </div>
+        </div>
+        <h3 className="movie-list-item-title">{movie.Title}</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          {movie.Year} · {movie.Type}
         </p>
-        <button className="movie-list-item-button" onClick={handleClick}>
-          <Play size={12} style={{ display: 'inline', marginRight: 4 }} />
-          Watch
-        </button>
       </div>
     </div>
   );

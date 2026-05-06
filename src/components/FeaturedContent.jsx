@@ -1,157 +1,86 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Info } from 'lucide-react';
-import { getMovieById } from '../api/movies';
+import { Play, Info, Star } from 'lucide-react';
 
-// Featured movies pool - rotate through these
-const FEATURED_IDS = [
-  'tt1375666', // Inception
-  'tt0816692', // Interstellar
-  'tt0468569', // The Dark Knight
-  'tt4154796', // Avengers: Endgame
-  'tt0110912', // Pulp Fiction
-];
-
-const FeaturedContent = ({ onMovieSelect }) => {
+const FeaturedContent = ({ onMovieSelect, activeMenu }) => {
   const [featured, setFeatured] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
     const loadFeatured = async () => {
-      if (mounted) setLoading(true);
-      const randomId = FEATURED_IDS[Math.floor(Math.random() * FEATURED_IDS.length)];
+      setLoading(true);
       try {
-        const data = await getMovieById(randomId);
-        if (mounted && data && data.Response !== 'False') {
-          setFeatured(data);
+        let endpoint = '/api/movies/trending';
+        
+        // Change endpoint based on active menu
+        if (activeMenu === 'Movies') {
+          endpoint = '/api/movies/search?q=Top'; // Or a specific movies category
+        } else if (activeMenu === 'Series') {
+          endpoint = '/api/movies/search?q=The&type=series';
         }
-      } catch {
-        // silent fail
+        
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error("API Error");
+        const data = await response.json();
+        
+        if (data && data.Search && data.Search.length > 0) {
+          // Pick a random movie from the results
+          const pool = data.Search.slice(0, 10);
+          const randomIndex = Math.floor(Math.random() * pool.length);
+          setFeatured(pool[randomIndex]);
+        } else {
+          throw new Error("No data");
+        }
+      } catch (err) {
+        console.warn("Featured fetch error, using fallback:", err.message);
+        const { mockMovies } = await import('../data.js');
+        setFeatured(mockMovies[0]);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
     loadFeatured();
-    return () => { mounted = false; };
-  }, []);
+  }, [activeMenu]);
 
-  const bgImage = featured?.Poster && featured.Poster !== 'N/A'
-    ? featured.Poster
-    : '/img/f-1.jpg';
-
-  // Use a large backdrop-style image for featured
-  const backdropStyle = {
-    background: `linear-gradient(to right, rgba(0,0,0,0.85) 40%, transparent 100%),
-                 linear-gradient(to top, var(--bg-primary) 0%, transparent 30%),
-                 url('${bgImage}')`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center top',
-  };
-
-  if (loading) {
+  if (loading || !featured) {
     return (
-      <div
-        className="featured-content animate-fade-in"
-        style={{
-          background: `linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, var(--bg-primary) 100%), url('/img/f-1.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="featured-skeleton">
-          <div className="featured-skeleton-title" />
-          <div className="featured-skeleton-desc" />
-          <div className="featured-skeleton-btns" />
-        </div>
+      <div className="featured-content" style={{ background: 'var(--bg-darker)' }}>
+        <div className="loader"></div>
       </div>
     );
   }
 
-  if (!featured) {
-    return (
-      <div
-        className="featured-content animate-fade-in"
-        style={{
-          background: `linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, var(--bg-primary) 100%), url('/img/f-1.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <img className="featured-title" src="/img/f-t-1.png" alt="Featured Title" />
-        <p className="featured-desc glass">
-          Experience the ultimate cinematic journey. Watch the latest blockbusters and timeless classics.
-        </p>
-        <div className="featured-buttons">
-          <button className="featured-button">
-            <Play size={16} fill="white" /> WATCH NOW
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const bgImage = featured.Poster !== 'N/A' ? featured.Poster : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=1200';
 
   return (
-    <div className="featured-content animate-fade-in" style={backdropStyle}>
-      {/* Badges */}
-      <div className="featured-badges">
-        {featured.Rated && featured.Rated !== 'N/A' && (
-          <span className="featured-badge">{featured.Rated}</span>
-        )}
-        {featured.Year && (
-          <span className="featured-badge">{featured.Year}</span>
-        )}
-        {featured.Runtime && featured.Runtime !== 'N/A' && (
-          <span className="featured-badge">{featured.Runtime}</span>
-        )}
-      </div>
-
-      {/* Title */}
-      <h2 className="featured-movie-title">{featured.Title}</h2>
-
-      {/* Genre */}
-      {featured.Genre && featured.Genre !== 'N/A' && (
-        <p className="featured-genre">{featured.Genre}</p>
-      )}
-
-      {/* Rating + Score */}
-      {featured.imdbRating && featured.imdbRating !== 'N/A' && (
-        <div className="featured-rating">
-          <span className="featured-star">★</span>
-          <span className="featured-rating-val">{featured.imdbRating}</span>
-          <span className="featured-rating-max">/10</span>
-          {featured.imdbVotes && featured.imdbVotes !== 'N/A' && (
-            <span className="featured-votes">({featured.imdbVotes} votes)</span>
-          )}
+    <div className="featured-content animate-fade-in" style={{ 
+      backgroundImage: `url(${bgImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center 20%'
+    }}>
+      <div className="featured-info">
+        <div className="featured-meta">
+            <span style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Star size={14} fill="var(--primary)" /> {featured.imdbRating}
+            </span>
+            <span>{featured.Year}</span>
+            <span>{featured.Runtime}</span>
+            <span className="glass" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>{featured.Rated}</span>
         </div>
-      )}
-
-      {/* Plot */}
-      {featured.Plot && featured.Plot !== 'N/A' && (
-        <p className="featured-desc glass">{featured.Plot}</p>
-      )}
-
-      {/* Cast */}
-      {featured.Actors && featured.Actors !== 'N/A' && (
-        <p className="featured-cast">
-          <span className="featured-cast-label">Starring: </span>
-          {featured.Actors}
+        
+        <h1 className="featured-movie-title">{featured.Title}</h1>
+        
+        <p className="featured-desc">
+          {featured.Plot !== 'N/A' ? featured.Plot : "Experience this cinematic masterpiece only on Flakes. Explore the depth of storytelling and visual excellence."}
         </p>
-      )}
 
-      {/* Buttons */}
-      <div className="featured-buttons">
-        <button
-          className="featured-button"
-          onClick={() => onMovieSelect && onMovieSelect(featured)}
-        >
-          <Play size={16} fill="white" /> WATCH NOW
-        </button>
-        <button
-          className="featured-button featured-info-btn glass"
-          onClick={() => onMovieSelect && onMovieSelect(featured)}
-        >
-          <Info size={16} /> MORE INFO
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+            <button className="btn-primary" onClick={() => onMovieSelect(featured)}>
+                <Play size={20} fill="white" /> Watch Now
+            </button>
+            <button className="btn-glass" onClick={() => onMovieSelect(featured)}>
+                <Info size={20} /> More Info
+            </button>
+        </div>
       </div>
     </div>
   );

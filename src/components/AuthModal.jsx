@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { X } from 'lucide-react';
+import api from '../api';
+import { X, Mail, Lock, User } from 'lucide-react';
 
 const AuthModal = ({ isOpen, onClose, initialView, onLoginSuccess }) => {
   const [isLoginView, setIsLoginView] = useState(initialView === 'login');
@@ -8,7 +8,6 @@ const AuthModal = ({ isOpen, onClose, initialView, onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Sync state if initialView changes externally
   React.useEffect(() => {
     if (isOpen) {
       setIsLoginView(initialView === 'login');
@@ -26,82 +25,91 @@ const AuthModal = ({ isOpen, onClose, initialView, onLoginSuccess }) => {
     setError('');
     setLoading(true);
 
-    const BASE_URL = "https://flakes.onrender.com";
-
-const url = isLoginView 
-  ? `${BASE_URL}/api/auth/login`
-  : `${BASE_URL}/api/auth/register`;
+    const url = isLoginView ? '/api/auth/login' : '/api/auth/register';
 
     const payload = isLoginView 
       ? { username: formData.identifier, email: formData.identifier, password: formData.password }
       : { username: formData.username, email: formData.email, password: formData.password };
 
     try {
-      const response = await axios.post(url, payload, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // withCredentials: true
-      });
-      // Mock or real user object
+      const response = await api.post(url, payload);
       const userObj = {
         username: response.data.user?.username || payload.username || payload.email?.split('@')[0] || 'User',
         token: response.data.accessToken || ''
       };
-      console.log('Auth success:', response.data);
       onLoginSuccess(userObj);
       onClose();
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Authentication failed. Please check if the backend server is running on port 3000.');
+      setError(err.response?.data?.message || 'Authentication failed. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="modal-overlay glass" onClick={onClose}>
-      <div className="auth-modal glass" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}><X size={20} /></button>
-        <h2 className="modal-title text-gradient">{isLoginView ? 'Welcome Back' : 'Create Account'}</h2>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="auth-modal animate-fade-in" onClick={e => e.stopPropagation()}>
+        <button className="detail-close" onClick={onClose}><X size={20} /></button>
+        <h2 className="detail-title" style={{ fontSize: '32px', textAlign: 'center', marginBottom: '8px' }}>
+            {isLoginView ? 'Welcome Back' : 'Join Flakes'}
+        </h2>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '32px' }}>
+            {isLoginView ? 'Sign in to continue your cinematic journey' : 'Start exploring thousands of movies today'}
+        </p>
         
-        {error && <div className="modal-error">{error}</div>}
+        {error && (
+            <div className="glass" style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '13px', marginBottom: '24px', textAlign: 'center' }}>
+                {error}
+            </div>
+        )}
         
         <form onSubmit={handleSubmit} className="modal-form">
           {isLoginView ? (
-            <input 
-              type="text" name="identifier" placeholder="Email or Username" 
-              value={formData.identifier} onChange={handleChange} required
-              className="modal-input"
-            />
+            <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" name="identifier" placeholder="Email or Username" 
+                  value={formData.identifier} onChange={handleChange} required
+                  className="modal-input" style={{ paddingLeft: '48px' }}
+                />
+            </div>
           ) : (
             <>
-              <input 
-                type="text" name="username" placeholder="Username" 
-                value={formData.username} onChange={handleChange} required
-                className="modal-input"
-              />
-              <input 
-                type="email" name="email" placeholder="Email" 
-                value={formData.email} onChange={handleChange} required
-                className="modal-input"
-              />
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" name="username" placeholder="Username" 
+                  value={formData.username} onChange={handleChange} required
+                  className="modal-input" style={{ paddingLeft: '48px' }}
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="email" name="email" placeholder="Email" 
+                  value={formData.email} onChange={handleChange} required
+                  className="modal-input" style={{ paddingLeft: '48px' }}
+                />
+              </div>
             </>
           )}
-          <input 
-            type="password" name="password" placeholder="Password" 
-            value={formData.password} onChange={handleChange} required 
-            className="modal-input"
-          />
-          <button type="submit" className="featured-button modal-submit-btn" disabled={loading}>
-            {loading ? 'Processing...' : (isLoginView ? 'Login' : 'Sign Up')}
+          <div style={{ position: 'relative' }}>
+            <Lock size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+                type="password" name="password" placeholder="Password" 
+                value={formData.password} onChange={handleChange} required 
+                className="modal-input" style={{ paddingLeft: '48px' }}
+            />
+          </div>
+          <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }} disabled={loading}>
+            {loading ? 'Processing...' : (isLoginView ? 'Sign In' : 'Create Account')}
           </button>
         </form>
 
-        <p className="modal-switch">
-          {isLoginView ? "Don't have an account? " : "Already have an account? "}
-          <span onClick={() => setIsLoginView(!isLoginView)}>
-            {isLoginView ? 'Sign Up' : 'Login'}
+        <p style={{ marginTop: '32px', textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
+          {isLoginView ? "New to Flakes? " : "Already have an account? "}
+          <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }} onClick={() => setIsLoginView(!isLoginView)}>
+            {isLoginView ? 'Create an account' : 'Sign In'}
           </span>
         </p>
       </div>

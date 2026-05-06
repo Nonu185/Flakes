@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from './api';
 import Navbar from './components/Navbar';
 import FeaturedContent from './components/FeaturedContent';
 import MovieList from './components/MovieList';
@@ -36,27 +37,20 @@ function App() {
     localStorage.removeItem('flakesUser');
   };
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.body.className = newTheme === 'light' ? 'light-mode' : '';
-  };
-
   const handleSearch = (query) => {
     setSearchQuery(query);
+    if (query) setActiveMenu('Search');
   };
 
-  // Helper to fetch movies from backend API (deduplicates by imdbID)
+  // Helper to fetch movies using the Vite proxy
   const fetchMovies = async (query, type = '') => {
     try {
-      const BASE_URL = "https://flakes.onrender.com";
-let url = `${BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`;
-      if (type) url += `&type=${type}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Network error or Rate Limit");
-      const data = await response.json();
+      const response = await api.get('/movies/search', {
+        params: { q: query, type: type || undefined }
+      });
+      
+      const data = response.data;
       if (data.Response === "True") {
-        // Deduplicate by imdbID
         const seen = new Set();
         return data.Search.filter(movie => {
           if (seen.has(movie.imdbID)) return false;
@@ -64,11 +58,10 @@ let url = `${BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`;
           return true;
         });
       }
-      throw new Error(data.Error || "API returned False");
-    } catch {
-      console.warn(`API Limit Reached or Error fetching "${query}". Using Fallback Mock Data.`);
-      // Dynamic import to use fallback logic if OMDB key is exhausted
-      return import('./data.js').then(module => module.getMockData(10)).catch(() => []);
+      return [];
+    } catch (err) {
+      console.warn(`Fetch error for "${query}":`, err.message);
+      return [];
     }
   };
 
@@ -79,56 +72,61 @@ let url = `${BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`;
       setIsLoading(true);
       let fetchedLists = [];
 
+      const fetchTrending = async () => {
+        try {
+          const response = await api.get('/movies/trending');
+          const data = response.data;
+          return data.Response === "True" ? data.Search : [];
+        } catch (err) {
+          console.warn("Trending fetch error:", err);
+          return [];
+        }
+      };
+
       if (activeMenu === 'Home') {
-        const [newReleases, popular, action] = await Promise.all([
-          fetchMovies("Avatar"),
-          fetchMovies("Avengers"),
-          fetchMovies("Fast")
+        const [trending, action, horror] = await Promise.all([
+          fetchTrending(),
+          fetchMovies("Action"),
+          fetchMovies("Conjuring")
         ]);
         fetchedLists = [
-          { title: "NEW RELEASES", movies: newReleases },
-          { title: "POPULAR", movies: popular },
-          { title: "ACTION & ADVENTURE", movies: action }
-        ];
-      } else if (activeMenu === 'Movies') {
-        const [top, comedy, drama] = await Promise.all([
-          fetchMovies("Batman", "movie"),
-          fetchMovies("Hangover", "movie"),
-          fetchMovies("Godfather", "movie")
-        ]);
-        fetchedLists = [
-          { title: "TOP MOVIES", movies: [...top, ...comedy, ...drama], isGrid: true }
-        ];
-      } else if (activeMenu === 'Series') {
-        const [trending, scifi, crime] = await Promise.all([
-          fetchMovies("Breaking Bad", "series"),
-          fetchMovies("Stranger Things", "series"),
-          fetchMovies("Peaky Blinders", "series")
-        ]);
-        fetchedLists = [
-          { title: "TRENDING SERIES", movies: [...trending, ...scifi, ...crime], isGrid: true }
-        ];
-      } else if (activeMenu === 'Popular') {
-        const popular = await fetchMovies("Interstellar");
-        fetchedLists = [
-          { title: "POPULAR NOW", movies: popular, isGrid: true }
+          { title: "Trending Now", movies: trending },
+          { title: "Action Hits", movies: action },
+          { title: "Horror Nights", movies: horror }
         ];
       } else if (activeMenu === 'Trends') {
-        const trends = await fetchMovies("Spider");
+        const [trendingWeek, trendingDay] = await Promise.all([
+          fetchTrending(),
+          fetchMovies("Top", "movie") 
+        ]);
         fetchedLists = [
-          { title: "TRENDS NOW", movies: trends, isGrid: true }
+          { title: "Weekly Trends", movies: trendingWeek, isGrid: true },
+          { title: "Most Popular", movies: trendingDay, isGrid: true }
+        ];
+      } else if (activeMenu === 'Movies') {
+        const [scifi, comedy] = await Promise.all([
+          fetchMovies("Space", "movie"),
+          fetchMovies("Funny", "movie")
+        ]);
+        fetchedLists = [
+          { title: "Sci-Fi Universe", movies: scifi, isGrid: true },
+          { title: "Comedy Central", movies: comedy, isGrid: true }
+        ];
+      } else if (activeMenu === 'Series') {
+        const [drama, mystery] = await Promise.all([
+          fetchMovies("Drama", "series"),
+          fetchMovies("Mystery", "series")
+        ]);
+        fetchedLists = [
+          { title: "Drama Series", movies: drama, isGrid: true },
+          { title: "Mystery & Thriller", movies: mystery, isGrid: true }
         ];
       } else if (activeMenu === 'Search') {
         if (searchQuery.trim()) {
           const results = await fetchMovies(searchQuery);
           fetchedLists = [
-            { title: `SEARCH RESULTS FOR "${searchQuery.toUpperCase()}"`, movies: results, isGrid: true }
+            { title: `Results for "${searchQuery}"`, movies: results, isGrid: true }
           ];
-          if (results.length === 0) {
-            fetchedLists = [
-              { title: `NO RESULTS FOR "${searchQuery.toUpperCase()}"`, movies: [] }
-            ];
-          }
         }
       }
       
@@ -145,37 +143,47 @@ let url = `${BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`;
         activeMenu={activeMenu} 
         setActiveMenu={setActiveMenu} 
         onSearch={handleSearch} 
-        theme={theme}
-        toggleTheme={toggleTheme}
         user={user}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
       />
+      
+      <main className="main-content">
+        <FeaturedContent 
+          onMovieSelect={setSelectedMovie} 
+          activeMenu={activeMenu} 
+        />
+        
+        <div className="content-rows animate-fade-in">
+          {isLoading ? (
+            <div className="loader"></div>
+          ) : (
+            movieDataList.map((list, index) => (
+               <MovieList 
+                 key={index} 
+                 title={list.title} 
+                 movies={list.movies} 
+                 onMovieSelect={setSelectedMovie} 
+                 isGrid={list.isGrid} 
+               />
+            ))
+          )}
+        </div>
+      </main>
+
       <AuthModal 
         isOpen={isAuthOpen} 
         onClose={() => setIsAuthOpen(false)} 
         initialView={authView}
         onLoginSuccess={handleLoginSuccess}
       />
+      
       {selectedMovie && (
         <MovieDetailModal 
           movie={selectedMovie} 
           onClose={() => setSelectedMovie(null)} 
         />
       )}
-      <div className="main-content">
-        <FeaturedContent onMovieSelect={setSelectedMovie} />
-        
-        {isLoading ? (
-          <div className="loader"></div>
-        ) : (
-          <div className="content-rows">
-            {movieDataList.map((list, index) => (
-               <MovieList key={index} title={list.title} movies={list.movies} onMovieSelect={setSelectedMovie} isGrid={list.isGrid} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
