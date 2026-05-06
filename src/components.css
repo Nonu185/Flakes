@@ -637,7 +637,9 @@
   border-radius: 16px;
   border: 1px solid var(--glass-border);
   z-index: 10000;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  background: rgba(10, 10, 15, 0.98); /* Near-solid background to block bleed-through */
+  backdrop-filter: blur(30px);
 }
 
 .suggestion-item {
